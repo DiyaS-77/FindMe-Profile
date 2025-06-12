@@ -1,53 +1,52 @@
+import constants
 from gi.repository import GLib
 import dbus
 import dbus.mainloop.glib
 import dbus.service
 
-from constants import (
-    BLUEZ_SERVICE_NAME,
-    ADAPTER_IFACE,
-    GATT_MANAGER_IFACE,
-    ADVERTISING_MANAGER_IFACE,
-    GATT_SERVICE_IFACE,
-    GATT_CHARACTERISTIC_IFACE,
-    LE_ADVERTISEMENT_IFACE,
-    IAS_UUID,
-    ALERT_LEVEL_UUID
-)
 
 class Application(dbus.service.Object):
     """
     Represents the GATT application root object.
-
-    Registers GATT services 
+    
+    Registers GATT services.
     """
+
     PATH = '/org/bluez/example/app'
 
     def __init__(self, bus):
         """
-        Initialize the GATT application.
+        Initializes the GATT application.
 
-        :param bus: The system D-Bus connection.
+        Args:
+            bus: The system D-Bus connection.
         """
         self.path = self.PATH
         self.services = []
         dbus.service.Object.__init__(self, bus, self.path)
 
     def get_path(self):
-        """Returns the D-Bus object path of the application."""
+        """
+        Returns:
+            D-Bus object path of the application.
+        """
         return dbus.ObjectPath(self.path)
 
     def add_service(self, service):
-        """Adds a GATT service to the application."""
+        """
+        Adds a GATT service to the application.
+
+        Args:
+            service: The service object to be added.
+        """
         self.services.append(service)
 
     @dbus.service.method('org.freedesktop.DBus.ObjectManager',
                          out_signature='a{oa{sa{sv}}}')
     def GetManagedObjects(self):
         """
-        Implements the ObjectManager interface.
-
-        Returns a dict of all managed D-Bus objects and their properties.
+        Returns:
+            Dict of all managed D-Bus objects and their properties.
         """
         response = {}
         for service in self.services:
@@ -66,12 +65,13 @@ class IASService(dbus.service.Object):
         """
         Initializes the IAS service.
 
-        : bus: The system D-Bus connection.
-        : index: Index of the service used in its object path.
+        Args:
+            bus: The system D-Bus connection.
+            index: Index used in object path.
         """
         self.path = f'/org/bluez/example/service{index}'
         self.bus = bus
-        self.uuid = IAS_UUID
+        self.uuid = constants.IAS_UUID
         self.primary = True
         self.characteristics = []
         dbus.service.Object.__init__(self, bus, self.path)
@@ -80,13 +80,19 @@ class IASService(dbus.service.Object):
         self.add_characteristic(self.alert_level_char)
 
     def get_path(self):
-        """Returns the D-Bus object path of the service."""
+        """
+        Returns:
+            D-Bus object path of the service.
+        """
         return dbus.ObjectPath(self.path)
 
     def get_properties(self):
-        """Returns the GATT service properties."""
+        """
+        Returns:
+            Dictionary of GATT service properties.
+        """
         return {
-            GATT_SERVICE_IFACE: {
+            constants.GATT_SERVICE_IFACE: {
                 'UUID': self.uuid,
                 'Primary': self.primary,
                 'Characteristics': dbus.Array(
@@ -96,18 +102,26 @@ class IASService(dbus.service.Object):
         }
 
     def add_characteristic(self, char):
-        """Adds a characteristic to the service."""
+        """
+        Adds a characteristic to the service.
+
+        Args:
+            char: The characteristic object.
+        """
         self.characteristics.append(char)
 
     def get_characteristics(self):
-        """Returns the list of characteristics."""
+        """
+        Returns:
+            List of characteristics in the service.
+        """
         return self.characteristics
 
 
 class AlertLevelCharacteristic(dbus.service.Object):
     """
-    GATT Characteristic that supports Write and Notify operations.
-
+    GATT Characteristic supporting Write and Notify operations.
+    
     Allows clients to write an alert level and notifies them.
     """
 
@@ -115,26 +129,33 @@ class AlertLevelCharacteristic(dbus.service.Object):
         """
         Initializes the Alert Level characteristic.
 
-        : bus: The system D-Bus connection.
-        : index: Index of the characteristic used in its object path.
-        : service: Parent GATT service object.
+        Args:
+            bus: The system D-Bus connection.
+            index: Index used in the object path.
+            service: The parent service object.
         """
         self.path = f'{service.get_path()}/char{index}'
         self.bus = bus
         self.service = service
-        self.uuid = ALERT_LEVEL_UUID
+        self.uuid = constants.ALERT_LEVEL_UUID
         self.flags = ['write-without-response', 'notify']
         self.notifying = False
         dbus.service.Object.__init__(self, bus, self.path)
 
     def get_path(self):
-        """Returns the D-Bus object path of the characteristic."""
+        """
+        Returns:
+            D-Bus object path of the characteristic.
+        """
         return dbus.ObjectPath(self.path)
 
     def get_properties(self):
-        """Returns the characteristic properties."""
+        """
+        Returns:
+            Dictionary of GATT characteristic properties.
+        """
         return {
-            GATT_CHARACTERISTIC_IFACE: {
+            constants.GATT_CHARACTERISTIC_IFACE: {
                 'UUID': self.uuid,
                 'Service': self.service.get_path(),
                 'Flags': dbus.Array(self.flags, signature='s'),
@@ -142,14 +163,15 @@ class AlertLevelCharacteristic(dbus.service.Object):
             }
         }
 
-    @dbus.service.method(GATT_CHARACTERISTIC_IFACE,
+    @dbus.service.method(constants.GATT_CHARACTERISTIC_IFACE,
                          in_signature='aya{sv}', out_signature='')
     def WriteValue(self, value, options):
         """
         Handles write requests from clients.
 
-        :  Byte array containing the written value.
-        :  Additional options (unused).
+        Args:
+            value: Byte array of the written value.
+            options: Additional write options (unused).
         """
         if not value:
             print("[AlertLevelCharacteristic] Received empty value")
@@ -167,23 +189,21 @@ class AlertLevelCharacteristic(dbus.service.Object):
         print(f"[AlertLevelCharacteristic] Received alert level: {msg}")
         self.send_notification(msg)
 
-    @dbus.service.method(GATT_CHARACTERISTIC_IFACE,
+    @dbus.service.method(constants.GATT_CHARACTERISTIC_IFACE,
                          in_signature='', out_signature='')
-                         
     def StartNotify(self):
-    
-        """Starts notification. Called by client when it subscribes."""
-        
+        """
+        Starts notifications when a client subscribes.
+        """
         self.notifying = True
         print("[AlertLevelCharacteristic] Notifications enabled")
 
-    @dbus.service.method(GATT_CHARACTERISTIC_IFACE,
+    @dbus.service.method(constants.GATT_CHARACTERISTIC_IFACE,
                          in_signature='', out_signature='')
-                         
     def StopNotify(self):
-    
-        """Stops notification. Called by client when it unsubscribes."""
-        
+        """
+        Stops notifications when a client unsubscribes.
+        """
         self.notifying = False
         print("[AlertLevelCharacteristic] Notifications disabled")
 
@@ -191,20 +211,27 @@ class AlertLevelCharacteristic(dbus.service.Object):
         """
         Sends a notification to subscribed clients.
 
-        : message: A string message to be sent as notification.
+        Args:
+            message: The alert message string to send.
         """
         if not self.notifying:
             print("[AlertLevelCharacteristic] Notification skipped (not notifying)")
             return
         value = [dbus.Byte(ord(c)) for c in message]
-        self.PropertiesChanged(GATT_CHARACTERISTIC_IFACE,
+        self.PropertiesChanged(constants.GATT_CHARACTERISTIC_IFACE,
                                {'Value': dbus.Array(value, signature='y')}, [])
 
     @dbus.service.signal('org.freedesktop.DBus.Properties',
                          signature='sa{sv}as')
-                         
     def PropertiesChanged(self, interface, changed, invalidated):
-        """Signal emitted when a GATT property changes."""
+        """
+        Signal emitted when a property changes.
+
+        Args:
+            interface: D-Bus interface.
+            changed: Changed properties.
+            invalidated: Invalidated properties.
+        """
         pass
 
 
@@ -212,37 +239,44 @@ class Advertisement(dbus.service.Object):
     """
     LE Advertisement for the BLE peripheral.
     """
+
     PATH = '/org/bluez/example/advertisement0'
 
     def __init__(self, bus):
         """
         Initializes the LE advertisement.
 
-        : bus: The system D-Bus connection.
+        Args:
+            bus: The system D-Bus connection.
         """
         self.bus = bus
         dbus.service.Object.__init__(self, bus, self.PATH)
 
     @dbus.service.method('org.freedesktop.DBus.Properties',
                          in_signature='s', out_signature='a{sv}')
-                         
     def GetAll(self, interface):
         """
         Returns advertisement properties.
 
-        : interface: Requested interface .
+        Args:
+            interface: Requested interface.
+
+        Returns:
+            Dictionary of advertisement properties.
         """
         return {
             'Type': 'peripheral',
-            'ServiceUUIDs': dbus.Array([IAS_UUID], signature='s'),
+            'ServiceUUIDs': dbus.Array([constants.IAS_UUID], signature='s'),
             'LocalName': 'FindMeServer',
             'IncludeTxPower': dbus.Boolean(True)
         }
 
-    @dbus.service.method(LE_ADVERTISEMENT_IFACE,
+    @dbus.service.method(constants.LE_ADVERTISEMENT_IFACE,
                          in_signature='', out_signature='')
     def Release(self):
-        """Called by BlueZ when advertisement is released."""
+        """
+        Called by BlueZ when the advertisement is released.
+        """
         print("Advertisement released")
 
 
@@ -250,14 +284,17 @@ def find_adapter(bus):
     """
     Finds the first available Bluetooth adapter on the system.
 
-    : bus: The system D-Bus connection.
-    :return: D-Bus object path of the adapter, or None if not found.
+    Args:
+        bus: The system D-Bus connection.
+
+    Returns:
+        D-Bus object path of the adapter, or None if not found.
     """
-    manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, '/'),
+    manager = dbus.Interface(bus.get_object(constants.BLUEZ_SERVICE_NAME, '/'),
                              'org.freedesktop.DBus.ObjectManager')
     objects = manager.GetManagedObjects()
     for path, interfaces in objects.items():
-        if ADAPTER_IFACE in interfaces:
+        if constants.ADAPTER_IFACE in interfaces:
             return path
     return None
 
