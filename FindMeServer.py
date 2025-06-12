@@ -3,23 +3,23 @@ import dbus
 import dbus.mainloop.glib
 import dbus.service
 
-BLUEZ_SERVICE_NAME = 'org.bluez'
-ADAPTER_IFACE = 'org.bluez.Adapter1'
-GATT_MANAGER_IFACE = 'org.bluez.GattManager1'
-ADVERTISING_MANAGER_IFACE = 'org.bluez.LEAdvertisingManager1'
-GATT_SERVICE_IFACE = 'org.bluez.GattService1'
-GATT_CHARACTERISTIC_IFACE = 'org.bluez.GattCharacteristic1'
-LE_ADVERTISEMENT_IFACE = 'org.bluez.LEAdvertisement1'
-
-IAS_UUID = '1802'
-ALERT_LEVEL_UUID = '2A06'
-
+from constants import (
+    BLUEZ_SERVICE_NAME,
+    ADAPTER_IFACE,
+    GATT_MANAGER_IFACE,
+    ADVERTISING_MANAGER_IFACE,
+    GATT_SERVICE_IFACE,
+    GATT_CHARACTERISTIC_IFACE,
+    LE_ADVERTISEMENT_IFACE,
+    IAS_UUID,
+    ALERT_LEVEL_UUID
+)
 
 class Application(dbus.service.Object):
     """
     Represents the GATT application root object.
 
-    Registers GATT services and returns them when queried via GetManagedObjects.
+    Registers GATT services 
     """
     PATH = '/org/bluez/example/app'
 
@@ -108,7 +108,7 @@ class AlertLevelCharacteristic(dbus.service.Object):
     """
     GATT Characteristic that supports Write and Notify operations.
 
-    Allows clients to write an alert level and notifies them with a description.
+    Allows clients to write an alert level and notifies them.
     """
 
     def __init__(self, bus, index, service):
@@ -169,15 +169,21 @@ class AlertLevelCharacteristic(dbus.service.Object):
 
     @dbus.service.method(GATT_CHARACTERISTIC_IFACE,
                          in_signature='', out_signature='')
+                         
     def StartNotify(self):
+    
         """Starts notification. Called by client when it subscribes."""
+        
         self.notifying = True
         print("[AlertLevelCharacteristic] Notifications enabled")
 
     @dbus.service.method(GATT_CHARACTERISTIC_IFACE,
                          in_signature='', out_signature='')
+                         
     def StopNotify(self):
+    
         """Stops notification. Called by client when it unsubscribes."""
+        
         self.notifying = False
         print("[AlertLevelCharacteristic] Notifications disabled")
 
@@ -196,6 +202,7 @@ class AlertLevelCharacteristic(dbus.service.Object):
 
     @dbus.service.signal('org.freedesktop.DBus.Properties',
                          signature='sa{sv}as')
+                         
     def PropertiesChanged(self, interface, changed, invalidated):
         """Signal emitted when a GATT property changes."""
         pass
@@ -218,6 +225,7 @@ class Advertisement(dbus.service.Object):
 
     @dbus.service.method('org.freedesktop.DBus.Properties',
                          in_signature='s', out_signature='a{sv}')
+                         
     def GetAll(self, interface):
         """
         Returns advertisement properties.
@@ -252,3 +260,4 @@ def find_adapter(bus):
         if ADAPTER_IFACE in interfaces:
             return path
     return None
+
