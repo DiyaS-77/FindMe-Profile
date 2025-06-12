@@ -115,9 +115,9 @@ class AlertLevelCharacteristic(dbus.service.Object):
         """
         Initializes the Alert Level characteristic.
 
-        :param bus: The system D-Bus connection.
-        :param index: Index of the characteristic used in its object path.
-        :param service: Parent GATT service object.
+        : bus: The system D-Bus connection.
+        : index: Index of the characteristic used in its object path.
+        : service: Parent GATT service object.
         """
         self.path = f'{service.get_path()}/char{index}'
         self.bus = bus
@@ -148,8 +148,8 @@ class AlertLevelCharacteristic(dbus.service.Object):
         """
         Handles write requests from clients.
 
-        : value: Byte array containing the written value.
-        : options: Additional options (unused).
+        :  Byte array containing the written value.
+        :  Additional options (unused).
         """
         if not value:
             print("[AlertLevelCharacteristic] Received empty value")
@@ -222,7 +222,7 @@ class Advertisement(dbus.service.Object):
         """
         Returns advertisement properties.
 
-        :param interface: Requested interface (usually ignored).
+        : interface: Requested interface .
         """
         return {
             'Type': 'peripheral',
